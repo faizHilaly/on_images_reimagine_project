@@ -1,101 +1,207 @@
-import Image from "next/image";
+"use client";
+
+import React, { useRef, useEffect, useState } from 'react';
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Ball {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  radius: number;
+  color: string;
+}
+
+interface AdjectiveStyle {
+  text: string;
+  color: string;
+  fontSize: number;
+}
+
+const positiveAdjectives = ["Imagine"];
+
+function getRandomAdjective(): AdjectiveStyle {
+  return {
+    text: positiveAdjectives[Math.floor(Math.random() * positiveAdjectives.length)],
+    color: `hsl(${Math.random() * 360}, 70%, 80%)`,
+    fontSize: Math.floor(Math.random() * 20 + 60)
+  };
+}
+
+function getRandomColor(): string {
+  return `hsl(${Math.random() * 360}, 100%, 50%)`;
+}
+
+function getRandomSize(min: number, max: number): number {
+  return Math.random() * (max - min) + min;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ballRef = useRef<Ball | null>(null);
+  const linesRef = useRef<{ points: Point[], color: string }[]>([]);
+  const currentLineRef = useRef<{ points: Point[], color: string } | null>(null);
+  const isDrawingRef = useRef(false);
+  const isBallMovingRef = useRef(false);
+  const adjectiveRef = useRef<AdjectiveStyle>(getRandomAdjective());
+  const [, forceUpdate] = useState({});
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    ballRef.current = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      dx: (Math.random() - 0.5) * 2,
+      dy: (Math.random() - 0.5) * 2,
+      radius: getRandomSize(10, 30),
+      color: getRandomColor(),
+    };
+
+    const animate = () => {
+      if (!ctx || !ballRef.current) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const adjective = adjectiveRef.current;
+      ctx.font = `bold ${adjective.fontSize}px Arial`;
+      ctx.fillStyle = adjective.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(adjective.text, canvas.width / 2, canvas.height / 6);
+
+      [...linesRef.current, ...(currentLineRef.current ? [currentLineRef.current] : [])].forEach(line => {        if (line.points.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(line.points[0].x, line.points[0].y);
+        for (let i = 1; i < line.points.length; i++) {
+          ctx.lineTo(line.points[i].x, line.points[i].y);
+        }
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      });
+
+      // Update ball position
+      if (isBallMovingRef.current) {
+        let { x, y, dx, dy, radius, color } = ballRef.current;
+
+        // Wall collision
+        if (x + radius > canvas.width || x - radius < 0) dx = -dx;
+        if (y + radius > canvas.height || y - radius < 0) dy = -dy;
+
+        [...linesRef.current, ...(currentLineRef.current ? [currentLineRef.current] : [])].forEach(line => {          for (let i = 1; i < line.points.length; i++) {
+            const start = line.points[i - 1];
+            const end = line.points[i];
+            if (lineCircleCollision(start, end, { x, y }, radius)) {
+              const angle = Math.atan2(end.y - start.y, end.x - start.x);
+              const normal = { x: Math.sin(angle), y: -Math.cos(angle) };
+              const dotProduct = dx * normal.x + dy * normal.y;
+              dx -= 2 * dotProduct * normal.x;
+              dy -= 2 * dotProduct * normal.y;
+            }
+          }
+        });
+
+        x += dx;
+        y += dy;
+
+        ballRef.current = { x, y, dx, dy, radius, color };
+      }
+
+      const { x, y, radius, color } = ballRef.current;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.closePath();
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, []);
+
+  const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const { offsetX, offsetY } = event.nativeEvent;
+    isDrawingRef.current = true;
+    currentLineRef.current = { 
+      points: [{ x: offsetX, y: offsetY }],
+      color: 'black'
+    };
+    forceUpdate({});
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current || !currentLineRef.current) return;
+    const { offsetX, offsetY } = event.nativeEvent;
+    currentLineRef.current.points.push({ x: offsetX, y: offsetY });
+    forceUpdate({});
+  };
+
+  const handleMouseUp = () => {
+    isDrawingRef.current = false;
+    if (currentLineRef.current && currentLineRef.current.points.length > 1) {
+      linesRef.current.push(currentLineRef.current);
+    }
+    currentLineRef.current = null;
+    isBallMovingRef.current = true;
+    forceUpdate({});
+  };
+
+  return (
+    <div className="w-full h-screen relative bg-[#f5f4ef] overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className="absolute top-0 left-0 w-full h-screen cursor-crosshair"
+        style={{ touchAction: 'none' }}
+      />
     </div>
   );
+}
+
+function lineCircleCollision(lineStart: Point, lineEnd: Point, circleCenter: Point, circleRadius: number): boolean {
+  const lineVector = { x: lineEnd.x - lineStart.x, y: lineEnd.y - lineStart.y };
+  const circleVector = { x: circleCenter.x - lineStart.x, y: circleCenter.y - lineStart.y };
+  
+  const lineLength = Math.sqrt(lineVector.x ** 2 + lineVector.y ** 2);
+  const unitLine = { x: lineVector.x / lineLength, y: lineVector.y / lineLength };
+  
+  const projection = circleVector.x * unitLine.x + circleVector.y * unitLine.y;
+  
+  const closestPoint = {
+    x: lineStart.x + unitLine.x * Math.max(0, Math.min(lineLength, projection)),
+    y: lineStart.y + unitLine.y * Math.max(0, Math.min(lineLength, projection))
+  };
+  
+  const distance = Math.sqrt(
+    (circleCenter.x - closestPoint.x) ** 2 + (circleCenter.y - closestPoint.y) ** 2
+  );
+  
+  return distance <= circleRadius;
 }
