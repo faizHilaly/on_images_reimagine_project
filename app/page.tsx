@@ -68,8 +68,8 @@ export default function Home() {
     ballRef.current = {
       x: canvas.width / 2,
       y: canvas.height / 2,
-      dx: (Math.random() - 0.5) * 2,
-      dy: (Math.random() - 0.5) * 2,
+      dx: (Math.random() - 0.5) * 5,
+      dy: (Math.random() - 0.5) * 5,
       radius: getRandomSize(10, 30),
       color: getRandomColor(),
     };
