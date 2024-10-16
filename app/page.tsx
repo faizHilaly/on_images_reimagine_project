@@ -86,7 +86,8 @@ export default function Home() {
       ctx.textBaseline = 'middle';
       ctx.fillText(adjective.text, canvas.width / 2, canvas.height / 6);
 
-      [...linesRef.current, ...(currentLineRef.current ? [currentLineRef.current] : [])].forEach(line => {        if (line.points.length < 2) return;
+      [...linesRef.current, ...(currentLineRef.current ? [currentLineRef.current] : [])].forEach(line => {
+        if (line.points.length < 2) return;
         ctx.beginPath();
         ctx.moveTo(line.points[0].x, line.points[0].y);
         for (let i = 1; i < line.points.length; i++) {
@@ -101,13 +102,15 @@ export default function Home() {
 
       // Update ball position
       if (isBallMovingRef.current) {
-        let { x, y, dx, dy, radius, color } = ballRef.current;
+        let { x, y, dx, dy } = ballRef.current;
+        const { radius, color } = ballRef.current;
 
         // Wall collision
         if (x + radius > canvas.width || x - radius < 0) dx = -dx;
         if (y + radius > canvas.height || y - radius < 0) dy = -dy;
 
-        [...linesRef.current, ...(currentLineRef.current ? [currentLineRef.current] : [])].forEach(line => {          for (let i = 1; i < line.points.length; i++) {
+        [...linesRef.current, ...(currentLineRef.current ? [currentLineRef.current] : [])].forEach(line => {
+          for (let i = 1; i < line.points.length; i++) {
             const start = line.points[i - 1];
             const end = line.points[i];
             if (lineCircleCollision(start, end, { x, y }, radius)) {
